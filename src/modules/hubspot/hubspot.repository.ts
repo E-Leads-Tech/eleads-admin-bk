@@ -54,7 +54,7 @@ type HubspotContact = {
     email: string | null;
     product: string | null;
     product_description: string | null;
-    phone: string | null;
+    mobilephone: string | null;
   };
 };
 
@@ -102,7 +102,7 @@ export type NormalizedContact = {
   email: string | null;
   product: string | null;
   productDescription: string | null;
-  phone: string | null;
+  mobilephone: string | null;
 };
 
 function getAccessToken(): string {
@@ -287,6 +287,7 @@ class HubspotRepository {
         "product",
         "product_description",
         "phone",
+        "mobilephone",
       ],
       limit: 100,
     };
@@ -305,7 +306,7 @@ class HubspotRepository {
       email: contact.properties.email,
       product: contact.properties.product,
       productDescription: contact.properties.product_description,
-      phone: contact.properties.phone,
+      mobilephone: contact.properties.mobilephone,
     }));
   }
 }

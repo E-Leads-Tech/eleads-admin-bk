@@ -153,7 +153,7 @@ class HubspotService {
           status: appointment.appointmentStatus as AppointmentStatus | null,
           product: contact.product,
           productDescription: contact.productDescription,
-          phone: contact.phone,
+          phone: contact.mobilephone,
           revenue: appointment.revenue,
           startAt: appointment.startAt,
         };
