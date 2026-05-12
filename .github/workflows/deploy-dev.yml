@@ -1,26 +1,29 @@
-name: Deploy to DEV
+name: Deploy Backend
 
 on:
   push:
     branches:
       - dev
+      - main
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REPOSITORY: eleads-admin-backend-ecr
-  ECS_CLUSTER: eleads-admin-bk-dev-cluster
-  ECS_SERVICE: eleads-admin-bk-dev-task-service
-  CONTAINER_NAME: eleads-admin-bk-dev
-  IMAGE_TAG: dev
 
 jobs:
-  deploy:
-    name: Build & Deploy
+  deploy-dev:
+    name: Build & Deploy DEV
+    if: github.ref == 'refs/heads/dev'
     runs-on: ubuntu-latest
     environment: development
     permissions:
       id-token: write
       contents: read
+    env:
+      ECS_CLUSTER: eleads-admin-bk-dev-cluster
+      ECS_SERVICE: eleads-admin-bk-dev-task-service
+      CONTAINER_NAME: eleads-admin-bk-dev
+      IMAGE_TAG: dev
 
     steps:
       - name: Code Checkout
@@ -86,5 +89,86 @@ jobs:
         if: failure()
         run: |
           echo "❌ Dev deploy failed!"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+
+  deploy-prod:
+    name: Build & Deploy PROD
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ECS_CLUSTER: eleads-admin-bk-prod-cluster
+      ECS_SERVICE: eleads-admin-bk-prod-task-service
+      CONTAINER_NAME: eleads-admin-bk-prod
+      IMAGE_TAG: prod
+
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v4
+
+      - name: Setting up AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login en Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build y Push Docker Image a ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          docker buildx create --use
+          docker buildx build \
+            --platform linux/amd64 \
+            --target production \
+            --push \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} \
+            .
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download current Task Definition
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition eleads-admin-bk-prod-task \
+            --query taskDefinition \
+            > task-definition.json
+
+      - name: Update Task Definition with new image
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy en ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Notify successful deploy
+        if: success()
+        run: |
+          echo "✅ PROD deploy successful!"
+          echo "Imagen: ${{ steps.build-image.outputs.image }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref_name }}"
+
+      - name: Notify failed deploy
+        if: failure()
+        run: |
+          echo "❌ PROD deploy failed!"
           echo "Commit: ${{ github.sha }}"
           echo "Branch: ${{ github.ref_name }}"
