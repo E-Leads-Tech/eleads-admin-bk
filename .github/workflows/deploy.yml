@@ -59,6 +59,7 @@ jobs:
           aws ecs describe-task-definition \
             --task-definition eleads-admin-bk-dev-task \
             --query taskDefinition \
+            | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .enableFaultInjection)' \
             > task-definition.json
 
       - name: Update Task Definition with new image
@@ -140,6 +141,7 @@ jobs:
           aws ecs describe-task-definition \
             --task-definition eleads-admin-bk-prod-task \
             --query taskDefinition \
+            | jq 'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy, .enableFaultInjection)' \
             > task-definition.json
 
       - name: Update Task Definition with new image
