@@ -7,6 +7,10 @@ import routes from "./routes";
 
 export const app = express();
 
+// Trust the first proxy (ALB) so that express-rate-limit can read the real
+// client IP from the X-Forwarded-For header instead of the ALB's private IP.
+app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(
   cors({
