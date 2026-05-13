@@ -29,11 +29,14 @@ class AuthController {
             return httpResponse.notFound(res, error.message);
           case "COGNITO_ERROR":
             return httpResponse.badRequest(res, error.message);
+          case "HUBSPOT_ERROR":
+            return httpResponse.internalError(res, error.message);
           default:
             return httpResponse.internalError(res, error.message);
         }
       }
 
+      console.error("[signUp] Unexpected error:", error);
       return httpResponse.internalError(res, "Server error");
     }
   }
@@ -53,6 +56,7 @@ class AuthController {
         return httpResponse.badRequest(res, error.message);
       }
 
+      console.error("[confirmSignUp] Unexpected error:", error);
       return httpResponse.internalError(res, "Server error");
     }
   }
@@ -76,6 +80,7 @@ class AuthController {
         return httpResponse.badRequest(res, error.message);
       }
 
+      console.error("[resendCode] Unexpected error:", error);
       return httpResponse.internalError(res, "Server error");
     }
   }
@@ -95,6 +100,7 @@ class AuthController {
         return httpResponse.unauthorized(res, error.message);
       }
 
+      console.error("[signIn] Unexpected error:", error);
       return httpResponse.internalError(res, "Server error");
     }
   }
@@ -114,6 +120,7 @@ class AuthController {
         return httpResponse.unauthorized(res, error.message);
       }
 
+      console.error("[refreshToken] Unexpected error:", error);
       return httpResponse.internalError(res, "Server error");
     }
   }

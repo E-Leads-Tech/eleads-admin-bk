@@ -11,37 +11,37 @@ import {
 class AuthService {
   async signUp(input: SignUpInput) {
     const { name, email, password } = input;
-
-    const existingUser = await AuthRepository.findByEmail(email);
-    if (existingUser) {
-      throw new AuthError("Email is already registered", "EMAIL_EXISTS");
-    }
-
-    const company = await HubspotRepository.searchCompanyByEmail(email);
-    if (!company) {
-      throw new AuthError(
-        "No company associated with this email was found",
-        "COMPANY_NOT_FOUND",
-      );
-    }
-
-    let cognitoSub: string;
     try {
+      const existingUser = await AuthRepository.findByEmail(email);
+      if (existingUser) {
+        throw new AuthError("Email is already registered", "EMAIL_EXISTS");
+      }
+
+      const company = await HubspotRepository.searchCompanyByEmail(email);
+      if (!company) {
+        throw new AuthError(
+          "No company associated with this email was found",
+          "COMPANY_NOT_FOUND",
+        );
+      }
+
+      let cognitoSub: string;
+
       cognitoSub = await cognitoService.userSignUp(name, email, password);
+
+      const user = await AuthRepository.create({
+        id: cognitoSub,
+        name,
+        email,
+        idCompany: company.id,
+      });
+
+      return user;
     } catch (error: unknown) {
       const message =
         error instanceof Error ? error.message : "Cognito sign-up failed";
       throw new AuthError(message, "COGNITO_ERROR");
     }
-
-    const user = await AuthRepository.create({
-      id: cognitoSub,
-      name,
-      email,
-      idCompany: company.id,
-    });
-
-    return user;
   }
 
   async confirmSignUp(input: ConfirmSignUpInput) {
