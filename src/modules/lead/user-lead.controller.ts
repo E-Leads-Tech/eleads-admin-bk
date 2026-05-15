@@ -25,7 +25,7 @@ class UserLeadController {
 
       return httpResponse.ok(res, userLead, "UserLead retrieved successfully");
     } catch (error) {
-      console.log("Server error in getUserLead", error);
+      console.error("Server error in getUserLead", error);
       return httpResponse.internalError(res, "Server error in getUserLead");
     }
   }
@@ -52,7 +52,7 @@ class UserLeadController {
       );
       return httpResponse.ok(res, result, "UserLeads retrieved successfully");
     } catch (error) {
-      console.log("Server error in getUserLeadsByUserId", error);
+      console.error("Server error in getUserLeadsByUserId", error);
       return httpResponse.internalError(
         res,
         "Server error in getUserLeadsByUserId",
@@ -74,7 +74,7 @@ class UserLeadController {
         "UserLead created successfully",
       );
     } catch (error) {
-      console.log("Server error in createUserLead", error);
+      console.error("Server error in createUserLead", error);
       return httpResponse.internalError(res, "Server error in createUserLead");
     }
   }
@@ -104,7 +104,7 @@ class UserLeadController {
       );
       return httpResponse.ok(res, userLead, "UserLead updated successfully");
     } catch (error) {
-      console.log("Server error in updateUserLead", error);
+      console.error("Server error in updateUserLead", error);
       return httpResponse.internalError(res, "Server error in updateUserLead");
     }
   }
@@ -124,7 +124,7 @@ class UserLeadController {
       await userLeadService.delete(params!.id);
       return httpResponse.ok(res, null, "UserLead deleted successfully");
     } catch (error) {
-      console.log("Server error in deleteUserLead", error);
+      console.error("Server error in deleteUserLead", error);
       return httpResponse.internalError(res, "Server error in deleteUserLead");
     }
   }

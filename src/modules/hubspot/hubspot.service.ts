@@ -110,6 +110,7 @@ class HubspotService {
     filters: CompanyAppointmentsQuery,
   ): Promise<PaginatedAppointments | null> {
     // 1. Get appointments for the company
+
     const appointmentsResult = await HubspotRepository.getCompanyAppointments(
       companyId,
       {
@@ -128,6 +129,7 @@ class HubspotService {
 
     // 2. Get contacts associated with these appointments
     const appointmentIds = appointments.map((apt) => apt.id);
+
     const contacts =
       await HubspotRepository.searchContactsByAppointmentIds(appointmentIds);
 
@@ -139,11 +141,15 @@ class HubspotService {
         }),
       };
 
-    // 3. Merge appointments with contacts by index
+    // 3. Merge appointments with contacts by appointmentId
+    const contactByAppointment = new Map(
+      contacts.map((c) => [c.appointmentId, c]),
+    );
+
     const results: AppointmentContact[] = appointments
-      .slice(0, contacts.length)
-      .map((appointment, i) => {
-        const contact = contacts[i]!;
+      .filter((appointment) => contactByAppointment.has(appointment.id))
+      .map((appointment) => {
+        const contact = contactByAppointment.get(appointment.id)!;
         return {
           idContact: contact.id,
           idAppointment: appointment.id,
@@ -207,16 +213,15 @@ class HubspotService {
     const previous = previousResult?.items ?? [];
     const previousMetrics = this.computeMetrics(previous);
 
-    // 3rd call: full current year
+    // 3rd call: full current year — no status/limit/after/name filters
+    // so groupByMonth reflects all appointments across all statuses for the year
     const year = reference.getFullYear();
     const annualResult = await this.getCompanyAppointmentsWithContacts(
       companyId,
       {
-        ...filters,
+        sortOrder: filters.sortOrder,
         dateFrom: new Date(year, 0, 1),
         dateTo: new Date(year, 11, 31, 23, 59, 59, 999),
-        name: undefined,
-        status: undefined,
       },
     );
     const annualContacts = annualResult?.items ?? [];

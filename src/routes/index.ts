@@ -18,6 +18,11 @@ router.use(
   userLeadRoutes,
 );
 
-router.use("/hubspot", authenticate(), hubspotRoutes);
+router.use(
+  "/hubspot",
+  authenticate(),
+  requireGroup("eleads-admin"),
+  hubspotRoutes,
+);
 
 export default router;

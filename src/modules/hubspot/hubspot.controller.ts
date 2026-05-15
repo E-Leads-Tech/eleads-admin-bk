@@ -22,7 +22,7 @@ class HubspotController {
 
       return httpResponse.ok(res, company, "Company retrieved successfully");
     } catch (error) {
-      console.log("Server error in getCompanyByEmail", error);
+      console.error("Server error in getCompanyByEmail", error);
       return httpResponse.internalError(
         res,
         "Server error in getCompanyByEmail",
@@ -60,7 +60,7 @@ class HubspotController {
         "Company appointments retrieved successfully",
       );
     } catch (error) {
-      console.log("Server error in getCompanyAppointments", error);
+      console.error("Server error in getCompanyAppointments", error);
       return httpResponse.internalError(
         res,
         "Server error in getCompanyAppointments",
@@ -94,7 +94,7 @@ class HubspotController {
         "Company lead metrics retrieved successfully",
       );
     } catch (error) {
-      console.log("Server error in getCompanyLeadMetrics", error);
+      console.error("Server error in getCompanyLeadMetrics", error);
       return httpResponse.internalError(
         res,
         "Server error in getCompanyLeadMetrics",

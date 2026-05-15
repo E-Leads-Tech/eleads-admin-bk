@@ -64,6 +64,30 @@ type HubSpotContactSearchResponse = {
   paging?: { next?: { after: string } };
 };
 
+type HubSpotAssociationBatchResult = {
+  from: { id: string };
+  to: {
+    toObjectId: number;
+    associationTypes: {
+      category: string;
+      typeId: number;
+      label: string | null;
+    }[];
+  }[];
+};
+
+type HubSpotAssociationBatchResponse = {
+  status: string;
+  results: HubSpotAssociationBatchResult[];
+  startedAt: string;
+  completedAt: string;
+};
+
+type HubSpotContactBatchReadResponse = {
+  status: string;
+  results: HubspotContact[];
+};
+
 type HubSpotSearchResponse = {
   total: number;
   results: HubSpotObject[];
@@ -201,6 +225,7 @@ class HubspotRepository {
                   const match = APPOINTMENT_STATUSES.find(
                     (s) => s.label === filters.status,
                   );
+
                   return match
                     ? [
                         {
@@ -244,7 +269,6 @@ class HubspotRepository {
       );
 
       if (!response.results || !response.results.length) return null;
-
       return {
         items: response.results.map((appointment) => ({
           id: appointment.id,
@@ -267,19 +291,38 @@ class HubspotRepository {
 
   async searchContactsByAppointmentIds(
     appointmentIds: string[],
-  ): Promise<NormalizedContact[]> {
-    const body: HubSpotSearchRequest = {
-      filterGroups: [
-        {
-          filters: [
-            {
-              propertyName: "associations.appointment",
-              operator: "IN",
-              values: appointmentIds,
-            },
-          ],
-        },
-      ],
+  ): Promise<Array<NormalizedContact & { appointmentId: string }>> {
+    const associationBody = {
+      inputs: appointmentIds.map((id) => ({ id })),
+    };
+
+    const associationResponse =
+      await hubspotFetch<HubSpotAssociationBatchResponse>(
+        "/crm/associations/2026-03/appointments/contacts/batch/read",
+        { method: "POST", body: JSON.stringify(associationBody) },
+      );
+
+    if (!associationResponse.results || !associationResponse.results.length) {
+      return [];
+    }
+
+    // Build a reverse map: contactId -> appointmentId (first contact per appointment)
+    const contactToAppointment = new Map<string, string>();
+    for (const result of associationResponse.results) {
+      const appointmentId = result.from.id;
+      for (const assoc of result.to) {
+        const contactId = String(assoc.toObjectId);
+        if (!contactToAppointment.has(contactId)) {
+          contactToAppointment.set(contactId, appointmentId);
+        }
+      }
+    }
+
+    const contactIds = [...contactToAppointment.keys()];
+    if (!contactIds.length) return [];
+
+    const contactsBody = {
+      inputs: contactIds.map((id) => ({ id })),
       properties: [
         "firstname",
         "lastname",
@@ -289,25 +332,30 @@ class HubspotRepository {
         "phone",
         "mobilephone",
       ],
-      limit: 100,
     };
 
-    const response = await hubspotFetch<HubSpotContactSearchResponse>(
-      "crm/objects/2026-03/contacts/search",
-      { method: "POST", body: JSON.stringify(body) },
-    );
+    const contactsResponse =
+      await hubspotFetch<HubSpotContactBatchReadResponse>(
+        "/crm/objects/2026-03/contacts/batch/read",
+        { method: "POST", body: JSON.stringify(contactsBody) },
+      );
 
-    if (!response.results || !response.results.length) return [];
+    if (!contactsResponse.results || !contactsResponse.results.length) {
+      return [];
+    }
 
-    return response.results.map((contact) => ({
-      id: contact.id,
-      firstname: contact.properties.firstname,
-      lastname: contact.properties.lastname,
-      email: contact.properties.email,
-      product: contact.properties.product,
-      productDescription: contact.properties.product_description,
-      mobilephone: contact.properties.mobilephone,
-    }));
+    return contactsResponse.results
+      .filter((contact) => contactToAppointment.has(contact.id))
+      .map((contact) => ({
+        id: contact.id,
+        appointmentId: contactToAppointment.get(contact.id)!,
+        firstname: contact.properties.firstname,
+        lastname: contact.properties.lastname,
+        email: contact.properties.email,
+        product: contact.properties.product,
+        productDescription: contact.properties.product_description,
+        mobilephone: contact.properties.mobilephone,
+      }));
   }
 }
 

@@ -27,7 +27,7 @@ class LeadController {
 
       return httpResponse.ok(res, lead, "Lead retrieved successfully");
     } catch (error) {
-      console.log("Server error in getLead", error);
+      console.error("Server error in getLead", error);
       return httpResponse.internalError(res, "Server error in getLead");
     }
   }
@@ -42,7 +42,7 @@ class LeadController {
       const result = await leadService.findAllFiltered(query!);
       return httpResponse.ok(res, result, "Leads retrieved successfully");
     } catch (error) {
-      console.log("Server error in getAllLeads", error);
+      console.error("Server error in getAllLeads", error);
       return httpResponse.internalError(res, "Server error in getAllLeads");
     }
   }
@@ -57,7 +57,7 @@ class LeadController {
       const lead = await leadService.create(data! as LeadCreateInput);
       return httpResponse.created(res, lead, "Lead created successfully");
     } catch (error) {
-      console.log("Server error in createLead", error);
+      console.error("Server error in createLead", error);
       return httpResponse.internalError(res, "Server error in createLead");
     }
   }
@@ -87,7 +87,7 @@ class LeadController {
       );
       return httpResponse.ok(res, lead, "Lead updated successfully");
     } catch (error) {
-      console.log("Server error in updateLead", error);
+      console.error("Server error in updateLead", error);
       return httpResponse.internalError(res, "Server error in updateLead");
     }
   }
@@ -107,7 +107,7 @@ class LeadController {
       await leadService.delete(params!.id);
       return httpResponse.ok(res, null, "Lead deleted successfully");
     } catch (error) {
-      console.log("Server error in deleteLead", error);
+      console.error("Server error in deleteLead", error);
       return httpResponse.internalError(res, "Server error in deleteLead");
     }
   }
